@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>まる罰ゲーム（3目並べ）</title>
+  <style>
+    /* ==== 全体レイアウト ==== */
+    body {
+      font-family: "Yu Gothic", "Hiragino Kaku Gothic ProN", sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      background: linear-gradient(180deg, #f3f6fc, #dde7f7);
+    }
+
+    h1 {
+      color: #333;
+      margin-bottom: 20px;
+    }
+
+    /* ==== ゲームボード ==== */
+    .board {
+      display: grid;
+      grid-template-columns: repeat(3, 100px);
+      grid-template-rows: repeat(3, 100px);
+      gap: 5px;
+    }
+
+    .cell {
+      background: white;
+      border: 2px solid #333;
+      font-size: 2.5em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .cell:hover {
+      background: #f0f8ff;
+    }
+
+    /* ==== ステータス表示 ==== */
+    .status {
+      margin-top: 20px;
+      font-size: 1.2em;
+      height: 1.5em;
+    }
+
+    /* ==== リセットボタン ==== */
+    .reset-btn {
+      margin-top: 15px;
+      padding: 10px 20px;
+      font-size: 1em;
+      background-color: #4caf50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .reset-btn:hover {
+      background-color: #45a049;
+    }
+
+  </style>
+</head>
+<body>
+  <h1>まる罰ゲーム（3目並べ）</h1>
+  
+  <!-- ゲーム盤 -->
+  <div class="board" id="board">
+    <!-- 9マスをJSで生成してもよいが、手動で置いてもOK -->
+    <div class="cell" data-index="0"></div>
+    <div class="cell" data-index="1"></div>
+    <div class="cell" data-index="2"></div>
+    <div class="cell" data-index="3"></div>
+    <div class="cell" data-index="4"></div>
+    <div class="cell" data-index="5"></div>
+    <div class="cell" data-index="6"></div>
+    <div class="cell" data-index="7"></div>
+    <div class="cell" data-index="8"></div>
+  </div>
+
+  <!-- 勝敗メッセージ -->
+  <div class="status" id="status"></div>
+
+  <!-- リセットボタン -->
+  <button class="reset-btn" id="resetBtn">リセット</button>
+
+  <script>
+    /* 
+      ==== ゲームロジック ====
+      X = プレイヤー1（まる）
+      O = プレイヤー2（ばつ）
+      交互にクリックして進行
+    */
+
+    const board = document.getElementById('board');
+    const cells = document.querySelectorAll('.cell');
+    const status = document.getElementById('status');
+    const resetBtn = document.getElementById('resetBtn');
+
+    // 現在のプレイヤー ("〇" または "×")
+    let currentPlayer = "〇";
+    // 盤面の状態（9マス）
+    let boardState = Array(9).fill(null);
+    // ゲーム終了フラグ
+    let gameOver = false;
+
+    // 勝利パターンの組み合わせ
+    const winPatterns = [
+      [0,1,2],
+      [3,4,5],
+      [6,7,8],
+      [0,3,6],
+      [1,4,7],
+      [2,5,8],
+      [0,4,8],
+      [2,4,6]
+    ];
+
+    // セルをクリックしたときの処理
+    function handleCellClick(e) {
+      const index = e.target.dataset.index;
+
+      // すでに埋まっている or 終了後は何もしない
+      if (boardState[index] || gameOver) return;
+
+      // 現在のプレイヤーの印をマスに入れる
+      boardState[index] = currentPlayer;
+      e.target.textContent = currentPlayer;
+
+      // 勝敗判定
+      if (checkWin(currentPlayer)) {
+        status.textContent = `プレイヤー「${currentPlayer}」の勝ち！🎉`;
+        gameOver = true;
+        highlightWinningCells(currentPlayer);
+        return;
+      }
+
+      // 引き分け判定（全マス埋まっている）
+      if (!boardState.includes(null)) {
+        status.textContent = "引き分けです🤝";
+        gameOver = true;
+        return;
+      }
+
+      // プレイヤー交代
+      currentPlayer = currentPlayer === "〇" ? "×" : "〇";
+      status.textContent = `プレイヤー「${currentPlayer}」の番です`;
+    }
+
+    // 勝利判定
+    function checkWin(player) {
+      return winPatterns.some(pattern => 
+        pattern.every(index => boardState[index] === player)
+      );
+    }
+
+    // 勝ちラインをハイライト
+    function highlightWinningCells(player) {
+      winPatterns.forEach(pattern => {
+        if (pattern.every(index => boardState[index] === player)) {
+          pattern.forEach(i => {
+            cells[i].style.background = "#d4edda"; // 緑っぽいハイライト
+          });
+        }
+      });
+    }
+
+    // ゲームをリセット
+    function resetGame() {
+      boardState.fill(null);
+      cells.forEach(cell => {
+        cell.textContent = "";
+        cell.style.background = "white";
+      });
+      currentPlayer = "〇";
+      gameOver = false;
+      status.textContent = `プレイヤー「${currentPlayer}」の番です`;
+    }
+
+    // イベント登録
+    cells.forEach(cell => cell.addEventListener('click', handleCellClick));
+    resetBtn.addEventListener('click', resetGame);
+
+    // 初期表示
+    status.textContent = `プレイヤー「${currentPlayer}」の番です`;
+  </script>
+</body>
+</html>
